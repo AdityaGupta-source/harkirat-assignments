@@ -2,7 +2,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const server = require('../fileServer');
-
+console.log("Jest is running smoothly")
 describe('API Endpoints', () => {
   let globalServer;
 

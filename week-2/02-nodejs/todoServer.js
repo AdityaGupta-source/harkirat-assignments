@@ -40,10 +40,85 @@
   Testing the server - run `npm run test-todoServer` command in terminal
  */
   const express = require('express');
+  const fs = require('fs');
   const bodyParser = require('body-parser');
   
   const app = express();
   
   app.use(bodyParser.json());
+
+  function getNextId(){
+    const todos = readFileData();
+    if(todos.length == 0) return 1;
+    let currMax = -1;
+    todos.forEach((todo) => {
+      const id = Number(todo.id);
+      if(id>currMax){
+        currMax = id;
+      }
+    })
+    return currMax + 1;
+  }
+
+  function readFileData(){
+    const data = fs.readFileSync('./todos.json', 'utf-8');
+    return JSON.parse(data);
+  }
+
+  app.get('/todos',(req,res) => {
+    const todoList = readFileData();
+    res.status(200).json(todoList);
+  })
+  app.get('/todos/:id',(req,res) => {
+    const todoList = readFileData();
+    const ourId = req.params.id;
+    let ans;
+    todoList.forEach((todo) => {
+      if(todo.id === ourId){
+        ans = todo;
+      }
+    })
+    if(!ans){
+      return res.status(404).send("not found");
+    }
+    res.status(200).json(ans);
+  })
+
+  app.post('/todos',(req,res) => {  
+    let addTodo = {
+      id: getNextId().toString(),
+      title: req.body.title,
+      description: req.body.description,
+      completed: req.body.completed
+    }
+    const todoList = readFileData();
+    todoList.push(addTodo);
+    fs.writeFileSync('./todos.json', JSON.stringify(todoList));
+    res.status(201).send({});
+  })
   
+  app.put('/todos/:id', (req,res) => {
+    const todoList = readFileData();
+    const ourId = req.params.id;
+    let found = 0;
+    todoList.forEach((todo) => {
+      if(todo.id === ourId){
+        found = 1;
+        todo.completed = req.body.completed
+      }
+    })
+    if(found === 0) return res.status(404).send("Not found");
+    fs.writeFileSync('./todos.json', JSON.stringify(todoList));
+    res.status(200).send({})
+  })
+  
+  app.delete('/todos/:id', (req,res) => {
+    let todoList = readFileData();
+    const ourId = req.params.id;
+    todoList = todoList.filter(todo => todo.id!==ourId);
+    fs.writeFileSync('./todos.json', JSON.stringify(todoList));
+    res.send({})
+  })
+  
+  app.listen(3000)
   module.exports = app;
